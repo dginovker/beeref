@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 from PyQt6 import QtCore, QtGui
 
@@ -36,10 +36,10 @@ def test_insert_items_with_position(view):
     item2.setPos(50, 40)
     view.scene.addItem(item2)
 
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=100):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=80):
+    with patch.object(item1, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 100, 80)):
+        with patch.object(item2, 'bounding_rect_unselected',
+                          return_value=QtCore.QRectF(0, 0, 100, 80)):
             command = commands.InsertItems(
                 view.scene, [item1, item2], QtCore.QPointF(100, 200))
             command.redo()
@@ -231,10 +231,10 @@ def test_normalize_items(qapp):
     item1.setScale(1)
     item2 = BeePixmapItem(QtGui.QImage())
     item2.setScale(3)
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=100):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=80):
+    with patch.object(item1, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 100, 80)):
+        with patch.object(item2, 'bounding_rect_unselected',
+                          return_value=QtCore.QRectF(0, 0, 100, 80)):
             command = commands.NormalizeItems([item1, item2], [2, 0.5])
             command.redo()
             assert item1.scale() == 2
@@ -304,46 +304,42 @@ def test_flip_items_vertical(qapp):
 
 def test_reset_scale(view, item):
     item.setScale(2)
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=100):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=80):
-            command = commands.ResetScale([item])
-            command.redo()
-            assert item.scale() == 1
-            assert item.pos().x() == 50
-            assert item.pos().y() == 40
-            command.undo()
-            assert item.scale() == 2
-            assert item.pos().x() == 0
-            assert item.pos().y() == 0
+    with patch.object(item, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 100, 80)):
+        command = commands.ResetScale([item])
+        command.redo()
+        assert item.scale() == 1
+        assert item.pos().x() == 50
+        assert item.pos().y() == 40
+        command.undo()
+        assert item.scale() == 2
+        assert item.pos().x() == 0
+        assert item.pos().y() == 0
 
 
 def test_reset_rotate(view, item):
     item.setRotation(180)
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=100):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=80):
-            command = commands.ResetRotation([item])
-            command.redo()
-            assert item.rotation() == 0
-            assert item.pos().x() == -100
-            assert item.pos().y() == -80
-            command.undo()
-            assert item.rotation() == 180
-            assert item.pos().x() == 0
-            assert item.pos().y() == 0
+    with patch.object(item, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 100, 80)):
+        command = commands.ResetRotation([item])
+        command.redo()
+        assert item.rotation() == 0
+        assert item.pos().x() == -100
+        assert item.pos().y() == -80
+        command.undo()
+        assert item.rotation() == 180
+        assert item.pos().x() == 0
+        assert item.pos().y() == 0
 
 
 def test_reset_flip(qapp):
     item1 = BeePixmapItem(QtGui.QImage())
     item1.do_flip()
     item2 = BeePixmapItem(QtGui.QImage())
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=100):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=80):
+    with patch.object(item1, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 100, 80)):
+        with patch.object(item2, 'bounding_rect_unselected',
+                          return_value=QtCore.QRectF(0, 0, 100, 80)):
             command = commands.ResetFlip([item1, item2])
             command.redo()
             assert item1.flip() == 1
@@ -367,10 +363,10 @@ def test_reset_transforms(qapp):
     item1.do_flip()
     item2 = BeePixmapItem(QtGui.QImage())
     item2.setRotation(180)
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=100):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=80):
+    with patch.object(item1, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 100, 80)):
+        with patch.object(item2, 'bounding_rect_unselected',
+                          return_value=QtCore.QRectF(0, 0, 100, 80)):
             command = commands.ResetTransforms([item1, item2])
             command.redo()
             assert item1.scale() == 1
@@ -403,18 +399,25 @@ def test_arrange_items(view):
     item2 = BeePixmapItem(QtGui.QImage())
     item2.setRotation(90)
     view.scene.addItem(item2)
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=100):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=80):
+    item3 = BeePixmapItem(QtGui.QImage())
+    item3.crop = QtCore.QRectF(5, 5, 20, 30)
+    view.scene.addItem(item3)
+    with patch.object(item1, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 100, 80)):
+        with patch.object(item2, 'bounding_rect_unselected',
+                          return_value=QtCore.QRectF(0, 0, 100, 80)):
             command = commands.ArrangeItems(
                 view.scene,
-                [item1, item2],
-                [QtCore.QPointF(1, 2), QtCore.QPointF(203, 204)])
+                [item1, item2, item3],
+                [QtCore.QPointF(1, 2),
+                 QtCore.QPointF(203, 204),
+                 QtCore.QPointF(307, 308)])
 
             command.redo()
             assert item1.pos() == QtCore.QPointF(101, 2)
             assert item2.pos() == QtCore.QPointF(283, 204)
+            assert item3.pos() == QtCore.QPointF(302, 303)
             command.undo()
             assert item1.pos() == QtCore.QPointF(0, 0)
             assert item2.pos() == QtCore.QPointF(0, 0)
+            assert item3.pos() == QtCore.QPointF(0, 0)

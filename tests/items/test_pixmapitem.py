@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -21,35 +21,29 @@ def test_init(selectable_mock, qapp, imgfilename3x3):
 
 
 def test_set_pos_center(qapp, item):
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=200):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=100):
-            item.set_pos_center(QtCore.QPointF(0, 0))
-            assert item.pos().x() == -100
-            assert item.pos().y() == -50
+    with patch.object(item, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 200, 100)):
+        item.set_pos_center(QtCore.QPointF(0, 0))
+        assert item.pos().x() == -100
+        assert item.pos().y() == -50
 
 
 def test_set_pos_center_when_scaled(qapp, item):
     item.setScale(2)
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=200):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=100):
-            item.set_pos_center(QtCore.QPointF(0, 0))
-            assert item.pos().x() == -200
-            assert item.pos().y() == -100
+    with patch.object(item, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 200, 100)):
+        item.set_pos_center(QtCore.QPointF(0, 0))
+        assert item.pos().x() == -200
+        assert item.pos().y() == -100
 
 
 def test_set_pos_center_when_rotated(qapp, item):
     item.setRotation(90)
-    with patch('beeref.items.BeePixmapItem.width',
-               new_callable=PropertyMock, return_value=200):
-        with patch('beeref.items.BeePixmapItem.height',
-                   new_callable=PropertyMock, return_value=100):
-            item.set_pos_center(QtCore.QPointF(0, 0))
-            assert item.pos().x() == 50
-            assert item.pos().y() == -100
+    with patch.object(item, 'bounding_rect_unselected',
+                      return_value=QtCore.QRectF(0, 0, 200, 100)):
+        item.set_pos_center(QtCore.QPointF(0, 0))
+        assert item.pos().x() == 50
+        assert item.pos().y() == -100
 
 
 def test_get_extra_save_data(item):
