@@ -243,7 +243,7 @@ class BeeGraphicsScene(QtWidgets.QGraphicsScene):
 
         if self.crop_item:
             return
-        if self.has_single_selection():
+        if self.has_croppable_selection():
             item = self.selectedItems(user_only=True)[0]
             if item.is_croppable:
                 item.enter_crop_mode()

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from PyQt6 import QtCore, QtGui
 
 from beeref import commands
-from beeref.items import BeePixmapItem
+from beeref.items import BeePixmapItem, BeeTextItem
 
 
 def test_insert_items(view):
@@ -357,17 +357,53 @@ def test_reset_flip(qapp):
             assert item2.pos().y() == 0
 
 
+def test_reset_crop(qapp):
+    item1 = BeePixmapItem(QtGui.QImage())
+    item1.crop = QtCore.QRectF(10, 20, 30, 50)
+    item2 = BeePixmapItem(QtGui.QImage())
+    item2.crop = QtCore.QRectF(5, 6, 55, 66)
+    with patch.object(BeePixmapItem, 'reset_crop'):
+        command = commands.ResetCrop([item1, item2])
+        command.redo()
+        assert BeePixmapItem.reset_crop.call_count == 2
+        assert item1.pos() == QtCore.QPointF(0, 0)
+        assert item2.pos() == QtCore.QPointF(0, 0)
+
+        item1.crop = QtCore.QRectF(0, 0, 0, 0)
+        item2.crop = QtCore.QRectF(0, 0, 0, 0)
+        command.undo()
+        assert item1.crop == QtCore.QRectF(10, 20, 30, 50)
+        assert item1.pos() == QtCore.QPointF(0, 0)
+        assert item2.crop == QtCore.QRectF(5, 6, 55, 66)
+        assert item2.pos() == QtCore.QPointF(0, 0)
+
+
+def test_reset_crop_ignores_uncroppable(qapp):
+    item = BeeTextItem('foo')
+    brect = item.boundingRect()
+    command = commands.ResetCrop([item])
+    command.redo()
+    assert item.pos() == QtCore.QPointF(0, 0)
+    assert item.boundingRect() == brect
+    command.undo()
+    assert item.pos() == QtCore.QPointF(0, 0)
+    assert item.boundingRect() == brect
+
+
 def test_reset_transforms(qapp):
     item1 = BeePixmapItem(QtGui.QImage())
     item1.setScale(2)
     item1.do_flip()
-    item2 = BeePixmapItem(QtGui.QImage())
+    item2 = BeeTextItem('foo')
     item2.setRotation(180)
+    item3 = BeePixmapItem(QtGui.QImage())
+    item3.crop = QtCore.QRectF(10, 20, 30, 40)
+    item3.reset_crop = MagicMock()
     with patch.object(item1, 'bounding_rect_unselected',
                       return_value=QtCore.QRectF(0, 0, 100, 80)):
         with patch.object(item2, 'bounding_rect_unselected',
                           return_value=QtCore.QRectF(0, 0, 100, 80)):
-            command = commands.ResetTransforms([item1, item2])
+            command = commands.ResetTransforms([item1, item2, item3])
             command.redo()
             assert item1.scale() == 1
             assert item1.rotation() == 0
@@ -379,6 +415,9 @@ def test_reset_transforms(qapp):
             assert item2.flip() == 1
             assert item2.pos().x() == -100
             assert item2.pos().y() == -80
+            item3.reset_crop.assert_called_once_with()
+
+            item3.crop = QtCore.QRectF(0, 0, 0, 0)
             command.undo()
             assert item1.scale() == 2
             assert item1.rotation() == 0
@@ -390,6 +429,7 @@ def test_reset_transforms(qapp):
             assert item2.flip() == 1
             assert item2.pos().x() == 0
             assert item2.pos().y() == 0
+            assert item3.crop == QtCore.QRectF(10, 20, 30, 40)
 
 
 def test_arrange_items(view):
@@ -400,24 +440,37 @@ def test_arrange_items(view):
     item2.setRotation(90)
     view.scene.addItem(item2)
     item3 = BeePixmapItem(QtGui.QImage())
-    item3.crop = QtCore.QRectF(5, 5, 20, 30)
     view.scene.addItem(item3)
     with patch.object(item1, 'bounding_rect_unselected',
                       return_value=QtCore.QRectF(0, 0, 100, 80)):
         with patch.object(item2, 'bounding_rect_unselected',
                           return_value=QtCore.QRectF(0, 0, 100, 80)):
-            command = commands.ArrangeItems(
-                view.scene,
-                [item1, item2, item3],
-                [QtCore.QPointF(1, 2),
-                 QtCore.QPointF(203, 204),
-                 QtCore.QPointF(307, 308)])
+            with patch.object(item3, 'bounding_rect_unselected',
+                              return_value=QtCore.QRectF(5, 5, 20, 30)):
 
-            command.redo()
-            assert item1.pos() == QtCore.QPointF(101, 2)
-            assert item2.pos() == QtCore.QPointF(283, 204)
-            assert item3.pos() == QtCore.QPointF(302, 303)
-            command.undo()
-            assert item1.pos() == QtCore.QPointF(0, 0)
-            assert item2.pos() == QtCore.QPointF(0, 0)
-            assert item3.pos() == QtCore.QPointF(0, 0)
+                command = commands.ArrangeItems(
+                    view.scene,
+                    [item1, item2, item3],
+                    [QtCore.QPointF(1, 2),
+                     QtCore.QPointF(203, 204),
+                     QtCore.QPointF(307, 308)])
+
+                command.redo()
+                assert item1.pos() == QtCore.QPointF(101, 2)
+                assert item2.pos() == QtCore.QPointF(283, 204)
+                assert item3.pos() == QtCore.QPointF(302, 303)
+                command.undo()
+                assert item1.pos() == QtCore.QPointF(0, 0)
+                assert item2.pos() == QtCore.QPointF(0, 0)
+                assert item3.pos() == QtCore.QPointF(0, 0)
+
+
+def test_crop_item(item):
+    item.crop = QtCore.QRectF(0, 0, 100, 80)
+    command = commands.CropItem(item, QtCore.QRectF(10, 20, 30, 40))
+    command.redo()
+    assert item.crop == QtCore.QRectF(10, 20, 30, 40)
+    assert item.pos() == QtCore.QPointF(0, 0)
+    command.undo()
+    assert item.crop == QtCore.QRectF(0, 0, 100, 80)
+    assert item.pos() == QtCore.QPointF(0, 0)

@@ -157,6 +157,7 @@ class BeePixmapItem(BeeItemMixin, QtWidgets.QGraphicsPixmapItem):
         item.setRotation(self.rotation())
         if self.flip() == -1:
             item.do_flip()
+        item.crop = self.crop
         return item
 
     def copy_to_clipboard(self, clipboard):
@@ -251,6 +252,7 @@ class BeePixmapItem(BeeItemMixin, QtWidgets.QGraphicsPixmapItem):
 
     def enter_crop_mode(self):
         logger.debug(f'Entering crop mode on {self}')
+        self.prepareGeometryChange()
         self.crop_mode = True
         self.crop_temp = QtCore.QRectF(self.crop)
         self.crop_mode_move = None
@@ -264,6 +266,7 @@ class BeePixmapItem(BeeItemMixin, QtWidgets.QGraphicsPixmapItem):
         if confirm and self.crop != self.crop_temp:
             self.scene().undo_stack.push(
                 commands.CropItem(self, self.crop_temp))
+        self.prepareGeometryChange()
         self.crop_mode = False
         self.crop_temp = None
         self.crop_mode_move = None
@@ -294,12 +297,12 @@ class BeePixmapItem(BeeItemMixin, QtWidgets.QGraphicsPixmapItem):
         if not self.crop_mode:
             return super().mousePressEvent(event)
 
-        self.crop_mode_event_start = event.pos()
+        event.accept()
         for handle in self.crop_handles():
             # Click into a handle?
             if handle().contains(event.pos()):
+                self.crop_mode_event_start = event.pos()
                 self.crop_mode_move = handle
-                event.accept()
                 return
         # Click not in handle, end cropping mode:
         self.exit_crop_mode(
@@ -339,6 +342,7 @@ class BeePixmapItem(BeeItemMixin, QtWidgets.QGraphicsPixmapItem):
     def mouseReleaseEvent(self, event):
         if self.crop_mode:
             self.crop_mode_move = None
+            self.crop_mode_event_start = None
             event.accept()
         else:
             super().mouseReleaseEvent(event)

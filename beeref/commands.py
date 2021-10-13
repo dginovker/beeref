@@ -256,14 +256,13 @@ class ResetTransforms(QtGui.QUndoCommand):
             }
             if item.is_croppable:
                 values['crop'] = item.crop
+                item.reset_crop()
             self.old_values.append(values)
 
             item.setScale(1, anchor=item.center)
             item.setRotation(0, anchor=item.center)
             if item.flip() == -1:
                 item.do_flip(anchor=item.center)
-            if item.is_croppable:
-                item.reset_crop()
 
     def undo(self):
         for item, old in zip(self.items, self.old_values):

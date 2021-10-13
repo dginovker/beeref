@@ -4,7 +4,7 @@
 Added
 -----
 
-* Image cropping (Transform -> Crop)
+* Image cropping (Go to "Transform -> Crop", or press Shift + C)
 * Show list of recent files on welcome screen
 * Keyboard shortcuts can now be configured via a settings file.
   Go to "Settings -> Open Settings Folder" and edit KeyboardSettings.ini
