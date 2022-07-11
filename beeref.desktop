@@ -1,10 +1,10 @@
 [Desktop Entry]
 Name=BeeRef
-Comment=BeeRef 0.3.0-dev
+Comment=BeeRef 0.2.0
 Terminal=false
-Exec=/home/yourname/path/to/BeeRef-0.3.0-dev-linux
+Exec=beeref
 Type=Application
-Icon=/home/yourname/path/to/logo.png
+Icon=org.beeref.BeeRef
 Name[en_US]=BeeRef
 
 MimeType=application/x-beeref;
